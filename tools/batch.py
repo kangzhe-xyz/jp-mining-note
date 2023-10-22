@@ -432,7 +432,73 @@ def fill_word_reading_hiragana_field():
     notes = invoke("multi", actions=actions)
 
 
+def _quick_fix_revert_kana_reading(query):
+    print("Quering notes...")
+    notes = invoke("findNotes", query=query)
+    print("Getting notes info...")
+    notes_info = invoke("notesInfo", notes=notes)
 
+    print("Forcing Cleanup")
+    actions=[]
+    for info in notes_info:
+        # hiragana_field = info["fields"]["WordReadingHiragana"]["Value"]
+        word_reading_field = info["fields"]["WordReading"]["value"]
+        if r"]]" in word_reading_field:
+            word_reading_field = re.sub(r"^\w+\[", "", word_reading_field)
+            word_reading_field = re.sub(r"\]$", "", word_reading_field)
+
+        result = f"{word_reading_field}"
+        print(result)
+        print("ok2")
+
+        action = {
+            "action": "updateNoteFields",
+            "params": {
+                "note": {
+                    "id": info["noteId"],
+                    "fields": {"WordReading": result},
+                }
+            },
+        }
+
+        actions.append(action)
+        print(result)
+
+    print("Updating notes...")
+    notes = invoke("multi", actions=actions)
+
+def _quick_fix_reading_hiragana(query):
+    actions = []
+    print("Quering notes...")
+    notes = invoke("findNotes", query=query)
+    print("Getting notes info...")
+    notes_info = invoke("notesInfo", notes=notes)
+
+    print("Setting Hiragana-only readings...")
+    for info in notes_info:
+        hiragana_field = info["fields"]["WordReadingHiragana"]["value"]
+        if r"]" in hiragana_field:
+            hiragana_field = re.sub(r"^\w+\[", "", hiragana_field)
+            hiragana_field = re.sub(r"\]$", "", hiragana_field)
+
+        result = f"{hiragana_field}"
+        print(result)
+
+        action = {
+            "action": "updateNoteFields",
+            "params": {
+                "note": {
+                    "id": info["noteId"],
+                    "fields": {"WordReadingHiragana": result},
+                }
+            },
+        }
+
+        actions.append(action)
+        print(result)
+
+    print("Updating notes...")
+    notes = invoke("multi", actions=actions)
 
 def _quick_fix_convert_kana_only_reading(query):
     print("Querying notes...")
@@ -472,6 +538,13 @@ def quick_fix_convert_kana_only_reading_all_notes():
     query = r'"note:JP Mining Note"'
     _quick_fix_convert_kana_only_reading(query)
 
+def revert_kana():
+    query = r'"note:JP Mining Note"'
+    _quick_fix_revert_kana_reading(query)
+
+def fix_hiragana_reading():
+    query = r'"note:JP Mining Note"'
+    _quick_fix_reading_hiragana(query)
 
 
 def separate_pa_override_field():
